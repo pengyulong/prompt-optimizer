@@ -1,0 +1,162 @@
+# 模板配置文件
+
+optimization_types:
+  general:
+    name: "通用优化"
+    template: "python:general"
+    description: "适用于大多数场景的通用优化策略"
+    icon: "🔧"
+    default_variables:
+      include_reasoning: false
+    
+  structured:
+    name: "结构化优化"
+    template: "python:structured"
+    description: "增加明确的结构和格式要求"
+    icon: "📋"
+    default_variables:
+      structure_template: |
+        ## 任务描述
+        ## 具体要求
+        ## 输出格式
+        ## 注意事项
+    
+  role_based:
+    name: "角色导向优化"
+    template: "python:role_based"
+    description: "基于特定角色或身份进行优化"
+    icon: "??"
+    default_variables:
+      role_traits:
+        - "丰富的专业经验"
+        - "深厚的理论基础"
+        - "实践能力强"
+    
+  task_oriented:
+    name: "任务导向优化"
+    template: "python:task_oriented"
+    description: "针对特定任务目标进行优化"
+    icon: "🎯"
+    
+  creative:
+    name: "创意优化"
+    template: "python:creative"
+    description: "提升创意性和想象力的优化"
+    icon: "💡"
+    
+  logical:
+    name: "逻辑优化"
+    template: "python:logical"
+    description: "增强逻辑推理和分析能力"
+    icon: "🧠"
+
+evaluation_types:
+  comparison:
+    name: "对比评估"
+    template: "python:test_evaluation"
+    description: "对比两个提示词的优劣"
+    
+  single:
+    name: "单项评估"
+    template: "python:test_evaluation"
+    description: "评估单个提示词的质量"
+    
+  batch:
+    name: "批量评估"
+    template: "python:test_evaluation"
+    description: "批量评估多个提示词"
+
+testing_types:
+  simple:
+    name: "简单测试"
+    template: "python:test_evaluation"
+    description: "测试单个提示词的效果"
+    
+  comparison:
+    name: "对比测试"
+    template: "python:test_evaluation"
+    description: "对比测试两个提示词"
+    
+  batch:
+    name: "批量测试"
+    template: "python:test_evaluation"
+    description: "批量测试多个场景"
+
+# 默认评估标准
+default_evaluation_criteria:
+  - name: "清晰度"
+    description: "表达是否清晰明确"
+    weight: 0.2
+    
+  - name: "完整性"
+    description: "信息是否完整全面"
+    weight: 0.2
+    
+  - name: "结构性"
+    description: "结构是否合理清晰"
+    weight: 0.2
+    
+  - name: "专业性"
+    description: "是否体现专业水准"
+    weight: 0.2
+    
+  - name: "可执行性"
+    description: "是否容易理解执行"
+    weight: 0.2
+
+# 角色建议映射
+role_suggestions:
+  code:
+    suggested_roles:
+      - "资深软件工程师"
+      - "系统架构师"
+      - "算法专家"
+    traits:
+      - "10年以上编程经验"
+      - "精通多种编程语言"
+      - "具备系统设计能力"
+      
+  writing:
+    suggested_roles:
+      - "专业作家"
+      - "内容策划师"
+      - "文案专家"
+    traits:
+      - "丰富的写作经验"
+      - "优秀的语言表达能力"
+      - "深厚的文学功底"
+      
+  analysis:
+    suggested_roles:
+      - "数据分析师"
+      - "商业分析师"
+      - "研究专家"
+    traits:
+      - "敏锐的分析能力"
+      - "丰富的数据处理经验"
+      - "深入的行业洞察"
+
+# 输出格式模板
+output_formats:
+  markdown:
+    description: "Markdown格式输出"
+    example: |
+      ## 标题
+      **重点内容**
+      - 列表项1
+      - 列表项2
+      
+  json:
+    description: "JSON格式输出"
+    example: |
+      {
+        "key1": "value1",
+        "key2": ["item1", "item2"]
+      }
+      
+  structured:
+    description: "结构化文本输出"
+    example: |
+      标题: [内容]
+      内容: [详细说明]
+      结论: [总结]

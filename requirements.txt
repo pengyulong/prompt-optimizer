@@ -1,12 +1,63 @@
+# 核心依赖
 streamlit>=1.28.0
+python-dotenv>=1.0.0
 requests>=2.31.0
+pyyaml>=6.0.0                    # YAML文件处理
+
+# 数据处理
 pandas>=2.0.0
 numpy>=1.24.0
-python-dotenv>=1.0.0
-pydantic>=2.0.0
-openai>=1.0.0
-anthropic>=0.3.0
-google-generativeai>=0.3.0
-tiktoken>=0.5.0
-plotly>=5.17.0
-altair>=5.0.0
+
+# AI模型相关
+openai>=1.0.0                    # OpenAI API客户端
+anthropic>=0.3.0                 # Anthropic Claude API客户端
+
+# LangChain集成 (可选)
+langchain-core>=0.1.0            # LangChain核心
+langchain-openai>=0.0.5          # LangChain OpenAI集成
+langchain-anthropic>=0.1.0       # LangChain Anthropic集成
+
+# 异步HTTP客户端
+aiohttp>=3.8.0                   # 异步HTTP请求
+httpx>=0.24.0                    # 现代HTTP客户端
+
+# 数据验证和序列化
+pydantic>=2.0.0                  # 数据验证
+marshmallow>=3.20.0              # 数据序列化
+
+# 缓存和存储
+redis>=4.5.0                     # Redis客户端
+sqlalchemy>=2.0.0                # SQL工具包
+
+# 日志和监控
+structlog>=23.0.0                # 结构化日志
+rich>=13.0.0                     # 美化输出
+
+# 工具库
+click>=8.1.0                     # 命令行工具
+python-multipart>=0.0.6         # 多部分表单数据
+uuid>=1.30                       # UUID生成
+
+# 可视化和图表
+plotly>=5.17.0                   # 交互式图表
+altair>=5.0.0                    # 声明式可视化
+
+# 开发和测试工具 (可选)
+pytest>=7.4.0                   # 测试框架
+pytest-asyncio>=0.21.0          # 异步测试支持
+black>=23.0.0                   # 代码格式化
+flake8>=6.0.0                   # 代码检查
+mypy>=1.5.0                     # 类型检查
+
+# 性能和监控 (可选)
+psutil>=5.9.0                   # 系统监控
+memory-profiler>=0.61.0         # 内存分析
+
+# 文件处理 (可选)
+openpyxl>=3.1.0                 # Excel文件处理
+python-docx>=0.8.11             # Word文档处理
+PyPDF2>=3.0.0                   # PDF处理
+
+# 网络和安全 (可选)
+cryptography>=41.0.0            # 加密库
+certifi>=2023.7.22              # CA证书
