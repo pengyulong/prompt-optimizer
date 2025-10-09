@@ -8,7 +8,7 @@ import requests
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 
-from core.client import BaseModelAdapter
+from core.base_adapter import BaseModelAdapter
 from core.models import (
     ModelProvider, GenerationConfig, ModelResponse, ModelInfo, ConnectionStatus
 )

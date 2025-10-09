@@ -17,7 +17,8 @@ class ModelProvider(Enum):
     CHATGLM = "chatglm"
     DEEPSEEK = "deepseek"
     MOONSHOT = "moonshot"
-    ERNIE = "ernie"
+    QIANFAN = "qianfan"
+    VLLM = "vllm"
 
 class OptimizationType(Enum):
     """优化类型枚举"""

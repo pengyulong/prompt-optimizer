@@ -10,43 +10,44 @@ class TesterComponent:
         self.test_results = {}
     
     def render(self):
-        """渲染测试界面"""
-        st.header("🧪 提示词效果测试")
+        """统一风格的测试界面"""
+        # st.header("🧪 效果测试")
         
-        col1, col2 = st.columns(2)
+        # 输入区域
+        st.markdown("####  📝 测试内容")
+        test_input = st.text_area(
+            "输入测试内容",
+            placeholder="输入要测试的内容...",
+            height=150,
+            help="输入您想要测试的内容，可以是问题、文本片段等"
+        )
+        # 自动填充优化前后的提示词
+        if "current_optimization" not in st.session_state or not st.session_state.current_optimization:
+            st.warning("请先完成提示词优化")
+            return
+            
+        original_prompt = st.session_state.get("original_prompt", "")
+        optimized_prompt = st.session_state.current_optimization.optimized_prompt
         
-        with col1:
-            st.subheader("原始提示词效果")
-            original_prompt = st.text_area(
+        st.markdown("####   ?? 对比测试")
+        tab1, tab2 = st.tabs(["原始提示词", "优化后提示词"])
+        
+        with tab1:
+            st.text_area(
                 "原始提示词",
-                placeholder="输入原始提示词...",
-                height=100
-            )
-            test_input = st.text_area(
-                "测试输入内容",
-                placeholder="输入要测试的内容...",
-                height=150
+                value=original_prompt,
+                height=150,
+                disabled=True,
+                label_visibility="collapsed"
             )
         
-        with col2:
-            st.subheader("优化后提示词效果")
-            optimized_prompt = st.text_area(
+        with tab2:
+            st.text_area(
                 "优化后提示词",
-                placeholder="优化后的提示词将显示在这里...",
-                height=100,
-                disabled=True
-            )
-            test_output_original = st.text_area(
-                "原始提示词结果",
-                placeholder="原始提示词的测试结果将显示在这里...",
+                value=optimized_prompt,
                 height=150,
-                disabled=True
-            )
-            test_output_optimized = st.text_area(
-                "优化后提示词结果",
-                placeholder="优化后提示词的测试结果将显示在这里...",
-                height=150,
-                disabled=True
+                disabled=True,
+                label_visibility="collapsed"
             )
         
         # 测试按钮
@@ -88,32 +89,54 @@ class TesterComponent:
             st.error(f"测试失败: {str(e)}")
     
     def analyze_results(self, original_result: str, optimized_result: str):
-        """分析测试结果"""
-        st.subheader("📊 性能分析")
+        """统一风格的结果分析"""
+        st.markdown("####  📋 测试结果对比")
         
-        col1, col2, col3, col4 = st.columns(4)
+        # 结果展示
+        tab1, tab2 = st.tabs(["原始结果", "优化结果"])
         
-        with col1:
-            st.metric("原始结果长度", len(original_result))
+        with tab1:
+            st.text_area(
+                "原始提示词结果", 
+                original_result,
+                height=200,
+                label_visibility="collapsed"
+            )
         
-        with col2:
-            st.metric("优化结果长度", len(optimized_result))
+        with tab2:
+            st.text_area(
+                "优化后提示词结果",
+                optimized_result,
+                height=200,
+                label_visibility="collapsed"
+            )
         
-        with col3:
+        # 性能指标
+        st.markdown("####  📊 性能指标")
+        cols = st.columns(3)
+        
+        with cols[0]:
+            st.metric("原始结果长度", f"{len(original_result)} 字符")
+        
+        with cols[1]:
+            st.metric("优化结果长度", f"{len(optimized_result)} 字符")
+        
+        with cols[2]:
             improvement = len(optimized_result) - len(original_result)
-            st.metric("长度差异", improvement, delta=f"{improvement}字符")
+            st.metric(
+                "长度差异", 
+                f"{abs(improvement)} 字符",
+                delta=f"{'+' if improvement > 0 else ''}{improvement} 字符"
+            )
         
-        with col4:
-            # 简单的质量评估（可以根据需要扩展）
-            quality_score = min(100, len(optimized_result) / max(len(original_result), 1) * 100)
-            st.metric("质量评分", f"{quality_score:.1f}%")
+        # 复制按钮
+        copy_cols = st.columns(2)
+        with copy_cols[0]:
+            if st.button("📋 复制原始结果", use_container_width=True):
+                st.session_state.copied_text = original_result
+                st.toast("已复制原始结果", icon="📋")
         
-        # 详细对比
-        with st.expander("详细对比分析"):
-            tab1, tab2 = st.tabs(["原始结果", "优化结果"])
-            
-            with tab1:
-                st.text_area("原始提示词结果", original_result, height=200)
-            
-            with tab2:
-                st.text_area("优化后提示词结果", optimized_result, height=200)
+        with copy_cols[1]:
+            if st.button("📋 复制优化结果", type="primary", use_container_width=True):
+                st.session_state.copied_text = optimized_result
+                st.toast("已复制优化结果", icon="📋")

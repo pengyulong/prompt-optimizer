@@ -1,6 +1,7 @@
 import streamlit as st
 from typing import Dict, List
 from config.settings import ConfigValidator, OptimizationConfig, ModelProvider
+from config.settings import DEFAULT_PROVIDER, DEFAULT_MODEL
 from core.client import create_client
 
 
@@ -12,58 +13,76 @@ class SidebarComponent:
         self.optimization_config = OptimizationConfig
     
     def render(self):
-        """渲染侧边栏"""
+        """渲染精简版侧边栏"""
         with st.sidebar:
-            st.title("🤖 AI提示词优化器")
-            st.markdown("---")
+            # 统一标题
+            st.markdown("""
+            <div style="text-align:center; margin-bottom:1.5rem;">
+                <h2 style="margin-bottom:0;">🤖 AI提示词优化器</h2>
+                <p style="color:#666; font-size:0.9rem; margin-top:0;">v1.0.0</p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            # 模型选择
-            self._render_model_selection()
-            st.markdown("---")
+            # 模型选择(折叠版)
+            with st.expander("🔧 模型设置", expanded=True):
+                self._render_model_selection()
             
-            # 优化策略选择
-            self._render_optimization_strategy()
-            st.markdown("---")
+            # 优化策略(折叠版)
+            with st.expander("🎯 优化策略", expanded=False):
+                self._render_optimization_strategy()
             
-            # 生成参数配置
-            self._render_generation_config()
-            st.markdown("---")
+            # 生成参数(折叠版)
+            with st.expander("⚙️ 生成参数", expanded=False):
+                self._render_generation_config()
             
-            # 应用信息
+            # 精简的应用信息
+            st.markdown("---")
             self._render_app_info()
     
     def _render_model_selection(self):
-        """渲染模型选择部分"""
-        st.subheader("🔧 模型配置")
+        """精简版模型选择组件"""
+        from services.adapters.openai import OpenAIModelAdapter
+        from core.models import ModelProvider
         
-        # 模型提供商选择
-        available_providers = self.config_validator.get_available_providers()
-        provider_names = [p.value for p in available_providers]
-        
-        # 初始化会话状态
+        # 初始化默认值
         if 'model_provider' not in st.session_state:
-            st.session_state['model_provider'] = provider_names[0] if provider_names else "ollama"
-        
-        selected_provider_name = st.selectbox(
-            "选择模型提供商",
-            provider_names,
-            key="model_provider"
-        )
-        
-        # 模型选择
-        selected_provider = ModelProvider(selected_provider_name)
-        models_config = self._get_available_models(selected_provider)
-        model_names = [model["name"] for model in models_config]
-        
-        # 初始化会话状态
+            st.session_state['model_provider'] = ModelProvider.DEEPSEEK
         if 'model_name' not in st.session_state:
-            st.session_state['model_name'] = model_names[0] if model_names else "llama3.2:latest"
+            st.session_state['model_name'] = 'deepseek-chat'
+
+        # 紧凑的模型选择布局
+        cols = st.columns([1, 1])
+        with cols[0]:
+            provider = st.selectbox(
+                "提供商",
+                [ModelProvider.DEEPSEEK, ModelProvider.OPENAI],
+                format_func=lambda x: x.value,
+                key='model_provider'
+            )
         
-        selected_model = st.selectbox(
-            "选择模型",
-            model_names,
-            key="model_name"
-        )
+        with cols[1]:
+            adapter = OpenAIModelAdapter('', {'provider': provider})
+            models = [m for m in adapter.get_available_models() if m.available]
+            model = st.selectbox(
+                "模型",
+                [m.name for m in models],
+                index=0,
+                key='model_name'
+            )
+
+        # 简洁的状态指示器
+        if st.button("🔄 测试连接", use_container_width=True):
+            try:
+                adapter = OpenAIModelAdapter(model, {'provider': provider})
+                status = adapter.check_connection()
+                st.session_state['model_client'] = adapter
+                
+                if status.connected:
+                    st.success(f"连接正常 ({status.response_time:.2f}s)")
+                else:
+                    st.error("连接失败")
+            except Exception as e:
+                st.error(f"连接错误: {str(e)}")
     
     def _get_available_models(self, provider: ModelProvider) -> List[Dict]:
         """获取可用模型列表"""
@@ -73,110 +92,113 @@ class SidebarComponent:
         return provider_config.get("models", [])
     
     def _render_optimization_strategy(self):
-        """渲染优化策略选择"""
-        st.subheader("🎯 优化策略")
-        
+        """精简版优化策略选择"""
         strategies = self.optimization_config.OPTIMIZATION_TYPES
-        strategy_names = [f"{strategy['icon']} {strategy['name']}" for strategy in strategies]
         
-        # 初始化会话状态
+        # 初始化默认策略
         if 'optimization_strategy' not in st.session_state:
             st.session_state['optimization_strategy'] = "general"
         
-        # 确保当前会话状态值在选项列表中
-        current_strategy = st.session_state['optimization_strategy']
-        if current_strategy not in [strategy['key'] for strategy in strategies]:
-            st.session_state['optimization_strategy'] = "general"
-        
-        # 获取当前策略的显示名称
-        current_display_name = "🔧 通用优化"
-        for strategy in strategies:
-            if strategy['key'] == st.session_state['optimization_strategy']:
-                current_display_name = f"{strategy['icon']} {strategy['name']}"
-                break
-        
-        selected_strategy_name = st.radio(
+        # 紧凑的选择器布局
+        strategy = st.selectbox(
             "选择优化类型",
-            strategy_names,
-            index=strategy_names.index(current_display_name) if current_display_name in strategy_names else 0
+            strategies,
+            format_func=lambda x: f"{x['icon']} {x['name']}",
+            index=next((i for i, s in enumerate(strategies) 
+                       if s['key'] == st.session_state['optimization_strategy']), 0)
         )
         
-        # 获取策略对应的key
-        strategy_key = "general"
-        for strategy in strategies:
-            if f"{strategy['icon']} {strategy['name']}" == selected_strategy_name:
-                strategy_key = strategy['key']
-                break
+        # 显示策略描述
+        st.caption(strategy['description'])
         
         # 更新会话状态
-        st.session_state['optimization_strategy'] = strategy_key
+        st.session_state['optimization_strategy'] = strategy['key']
     
     def _render_generation_config(self):
-        """渲染生成参数配置"""
-        st.subheader("⚙️ 生成参数")
+        """精简版生成参数配置"""
+        # 初始化默认值
+        defaults = {
+            'temperature': 0.7,
+            'top_p': 0.9
+        }
         
-        col1, col2 = st.columns(2)
-        
-        # 初始化会话状态
-        if 'temperature' not in st.session_state:
-            st.session_state['temperature'] = 0.7
-        if 'max_tokens' not in st.session_state:
-            st.session_state['max_tokens'] = 1024
-        if 'top_p' not in st.session_state:
-            st.session_state['top_p'] = 0.9
-        
-        with col1:
-            temperature = st.slider(
-                "温度 (Temperature)",
-                min_value=0.0,
-                max_value=2.0,
-                value=st.session_state['temperature'],
-                step=0.1,
-                key="temperature",
-                help="控制输出的随机性，值越高输出越随机"
-            )
-            
-            max_tokens = st.slider(
-                "最大Token数",
-                min_value=100,
-                max_value=4096,
-                value=st.session_state['max_tokens'],
-                step=100,
-                key="max_tokens",
-                help="限制生成文本的最大长度"
+        for key, value in defaults.items():
+            if key not in st.session_state:
+                st.session_state[key] = value
+         
+        cols = st.columns(2)
+        with cols[0]:
+            st.session_state['temperature'] = st.slider(
+                "温度", 0.0, 2.0, st.session_state['temperature'], 0.1,
+                help="控制输出的随机性(0-2)"
             )
         
-        with col2:
-            top_p = st.slider(
-                "核采样 (Top-p)",
-                min_value=0.0,
-                max_value=1.0,
-                value=st.session_state['top_p'],
-                step=0.05,
-                key="top_p",
-                help="控制输出的多样性，值越小输出越集中"
+        with cols[1]:
+            st.session_state['top_p'] = st.slider(
+                "多样性", 0.0, 1.0, st.session_state['top_p'], 0.05,
+                help="控制输出的多样性(0-1)"
             )
+        
+        # 快速预设按钮
+        preset_cols = st.columns(3)
+        with preset_cols[0]:
+            if st.button("保守", help="低随机性，高准确度"):
+                st.session_state.update({
+                    'temperature': 0.3,
+                    'top_p': 0.7
+                })
+                st.rerun()
+        
+        with preset_cols[1]:
+            if st.button("平衡", help="适中的随机性和准确度"):
+                st.session_state.update({
+                    'temperature': 0.7,
+                    'top_p': 0.9
+                })
+                st.rerun()
+        
+        with preset_cols[2]:
+            if st.button("创意", help="高随机性，创意输出"):
+                st.session_state.update({
+                    'temperature': 1.2,
+                    'top_p': 1.0
+                })
+                st.rerun()
     
     def _render_app_info(self):
-        """渲染应用信息"""
-        st.subheader("ℹ️ 应用信息")
+        """精简版应用信息"""
+        cols = st.columns([1, 1])
+        with cols[0]:
+            st.markdown("""
+            **版本**: 1.0.0  
+            **更新**: 2025-10-06
+            """)
+            
+            if st.button("📋 复制配置", help="复制当前配置到剪贴板"):
+                config = {
+                    'model': f"{st.session_state.get('model_provider', '')}/{st.session_state.get('model_name', '')}",
+                    'strategy': st.session_state.get('optimization_strategy', ''),
+                    'params': {
+                        'temperature': st.session_state.get('temperature', 0),
+                        'max_tokens': st.session_state.get('max_tokens', 0),
+                        'top_p': st.session_state.get('top_p', 0)
+                    }
+                }
+                st.session_state['copied_config'] = config
+                st.toast("配置已复制", icon="✓")
         
-        st.markdown("""
-        **版本**: 1.0.0  
-        **作者**: Comate团队  
-        **许可证**: MIT
+        with cols[1]:
+            st.markdown("""
+            [📚 文档](https://github.com/your-repo/docs)  
+            [🐞 反馈](https://github.com/your-repo/issues)
+            """)
+            
+            if st.button("🔄 重置会话", help="清除所有会话状态", use_container_width=True):
+                for key in list(st.session_state.keys()):
+                    if key not in ['_pages', '_last_page']:
+                        del st.session_state[key]
+                st.rerun()
         
-        [📖 使用指南](https://github.com/your-repo/docs)  
-        [🐛 报告问题](https://github.com/your-repo/issues)
-        """)
-        
-        # 性能监控
+        # 简洁的性能指标
         if 'api_calls' in st.session_state:
-            st.metric("API调用次数", st.session_state['api_calls'])
-        
-        # 清空会话状态按钮
-        if st.button("🔄 重置会话", use_container_width=True):
-            for key in list(st.session_state.keys()):
-                if key not in ['_pages', '_last_page']:
-                    del st.session_state[key]
-            st.rerun()
+            st.caption(f"API调用: {st.session_state['api_calls']}次")

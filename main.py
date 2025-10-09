@@ -96,8 +96,13 @@ def initialize_session_state():
         
     if "model_client" not in st.session_state:
         try:
-            # 创建模型客户端
-            st.session_state.model_client = UniversalModelClient()
+            # 创建模型客户端，确保传入正确的默认配置
+            from config.settings import OptimizationConfig
+            st.session_state.model_client = UniversalModelClient(
+                default_provider=OptimizationConfig.DEFAULT_PROVIDER,
+                default_model=OptimizationConfig.DEFAULT_MODEL,
+                config={}
+            )
             logger.info("模型客户端初始化成功")
         except Exception as e:
             logger.error(f"模型客户端初始化失败: {str(e)}")
@@ -114,32 +119,28 @@ def initialize_session_state():
         st.session_state.show_advanced = False
 
 def show_header():
-    """显示页面头部"""
-    col1, col2, col3 = st.columns([2, 3, 1])
+    """统一标题和版本号的页面头部"""
+    # 单行紧凑布局
+    col1, col2 = st.columns([3, 1])
     
     with col1:
-        st.title("🤖 提示词优化器")
-        
-    with col2:
         st.markdown(f"""
-        <div style="text-align: center; padding: 1rem 0;">
-            <h4 style="color: {UIConfig.THEME['text_color']}; margin: 0;">
-                {AppConfig.DESCRIPTION}
-            </h4>
-            <p style="color: {UIConfig.THEME['text_color']}99; margin: 0; font-size: 0.9rem;">
-                版本 {AppConfig.VERSION}
-            </p>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <h1 style="margin: 0;">🤖 AI提示词优化器</h1>
+            <span style="color: {UIConfig.THEME['text_color']}99; font-size: 0.9rem;">
+                v1.0.0
+            </span>
         </div>
+        <p style="color: {UIConfig.THEME['text_color']}99; margin-top: 0.5rem;">
+            专业AI提示词优化与测试工具
+        </p>
         """, unsafe_allow_html=True)
         
-    with col3:
-        # 显示配置验证状态
+    with col2:
+        # 仅在有配置问题时显示
         validation = ConfigValidator.validate_config()
-        if validation["valid"]:
-            st.success("✅ 配置正常")
-        else:
-            st.error("❌ 配置问题")
-            with st.expander("查看详情"):
+        if not validation["valid"]:
+            with st.expander("⚠️ 配置问题", expanded=False):
                 for issue in validation["issues"]:
                     st.error(f"• {issue}")
                 for warning in validation["warnings"]:

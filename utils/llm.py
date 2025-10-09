@@ -25,18 +25,9 @@ except ImportError:
     OPENAI_AVAILABLE = False
 
 from utils.config import get_api_config, get_model_config, MODEL_CONFIG
+from core.models import ModelProvider
 
 logger = logging.getLogger(__name__)
-
-class ModelProvider(Enum):
-    """模型提供商枚举"""
-    OLLAMA = "ollama"
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    QWEN = "qwen"
-    CHATGLM = "chatglm"
-    DEEPSEEK = "deepseek"
-    MOONSHOT = "moonshot"
 
 @dataclass
 class ModelResponse:

@@ -6,8 +6,9 @@ import os
 from dotenv import load_dotenv
 from typing import Dict, Any, Optional
 
-# 加载环境变量
-load_dotenv()
+# 加载环境变量 - 从utils/.env加载
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(env_path)
 
 # 应用基础配置
 APP_CONFIG = {

@@ -6,77 +6,17 @@ import asyncio
 import logging
 from typing import Dict, Any, Optional, List, Union
 from abc import ABC, abstractmethod
+import traceback
 
 from core.models import (
     ModelProvider, GenerationConfig, ModelResponse, ModelInfo, ConnectionStatus
 )
+from core.base_adapter import BaseModelAdapter
 from config.settings import ConfigValidator
 from utils.exceptions import ModelError, ConfigurationError, ConnectionError
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
-
-class BaseModelAdapter(ABC):
-    """模型适配器基类"""
-    
-    def __init__(self, provider: ModelProvider, model_name: str, config: Optional[Dict[str, Any]] = None):
-        self.provider = provider
-        self.model_name = model_name
-        self.config = config or {}
-        self.api_config = ConfigValidator.get_api_config(provider)
-        self.model_config = ConfigValidator.get_model_config(provider, model_name)
-        
-        if not self.api_config:
-            raise ConfigurationError(f"未找到 {provider.value} 的API配置")
-    
-    @abstractmethod
-    def check_connection(self) -> ConnectionStatus:
-        """检查连接状态"""
-        pass
-    
-    @abstractmethod
-    def get_available_models(self) -> List[ModelInfo]:
-        """获取可用模型列表"""
-        pass
-    
-    @abstractmethod
-    def generate(self, prompt: str, config: Optional[GenerationConfig] = None) -> ModelResponse:
-        """生成文本"""
-        pass
-    
-    @abstractmethod
-    async def generate_async(self, prompt: str, config: Optional[GenerationConfig] = None) -> ModelResponse:
-        """异步生成文本"""
-        pass
-    
-    @abstractmethod
-    def chat(self, messages: List[Dict[str, str]], config: Optional[GenerationConfig] = None) -> ModelResponse:
-        """聊天对话"""
-        pass
-    
-    @abstractmethod
-    async def chat_async(self, messages: List[Dict[str, str]], config: Optional[GenerationConfig] = None) -> ModelResponse:
-        """异步聊天对话"""
-        pass
-    
-    def _merge_config(self, config: Optional[GenerationConfig]) -> GenerationConfig:
-        """合并配置"""
-        # 从模型配置获取默认参数
-        default_params = self.model_config.get("parameters", {}) if self.model_config else {}
-        
-        if config:
-            # 使用传入的配置
-            merged = GenerationConfig(**config.to_dict())
-        else:
-            # 使用默认配置
-            merged = GenerationConfig()
-        
-        # 应用模型默认参数
-        for key, value in default_params.items():
-            if hasattr(merged, key) and getattr(merged, key) == getattr(GenerationConfig(), key):
-                setattr(merged, key, value)
-        
-        return merged
 
 class UniversalModelClient:
     """通用模型客户端"""
@@ -87,7 +27,6 @@ class UniversalModelClient:
                  config: Optional[Dict[str, Any]] = None):
         """
         初始化通用模型客户端
-        
         Args:
             default_provider: 默认模型提供商
             default_model: 默认模型名称
@@ -97,6 +36,7 @@ class UniversalModelClient:
         self.adapters: Dict[str, BaseModelAdapter] = {}
         self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
         
+        logger.info(f"default_provider:{default_provider}, default_model:{default_model}")
         # 设置默认适配器
         if default_provider and default_model:
             if isinstance(default_provider, str):
@@ -129,14 +69,29 @@ class UniversalModelClient:
                 return OpenAIModelAdapter(model_name, self.config)
             elif provider == ModelProvider.DEEPSEEK:
                 from services.adapters.openai import OpenAIModelAdapter
-                return OpenAIModelAdapter(model_name, self.config)
+                return OpenAIModelAdapter(model_name, {'provider': provider})
             elif provider == ModelProvider.VLLM:
+                from services.adapters.openai import OpenAIModelAdapter
+                return OpenAIModelAdapter(model_name, self.config)
+            elif provider == ModelProvider.ANTHROPIC:
+                from services.adapters.openai import OpenAIModelAdapter
+                return OpenAIModelAdapter(model_name, self.config)
+            elif provider == ModelProvider.QWEN:
+                from services.adapters.openai import OpenAIModelAdapter
+                return OpenAIModelAdapter(model_name, self.config)
+            elif provider == ModelProvider.CHATGLM:
+                from services.adapters.openai import OpenAIModelAdapter
+                return OpenAIModelAdapter(model_name, self.config)
+            elif provider == ModelProvider.MOONSHOT:
+                from services.adapters.openai import OpenAIModelAdapter
+                return OpenAIModelAdapter(model_name, self.config)
+            elif provider == ModelProvider.QIANFAN:
                 from services.adapters.openai import OpenAIModelAdapter
                 return OpenAIModelAdapter(model_name, self.config)
             else:
                 raise ModelError(f"不支持的模型提供商: {provider.value}")
         except Exception as e:
-            self.logger.error(f"创建适配器失败: {provider.value}:{model_name} - {str(e)}")
+            self.logger.error(f"创建适配器失败: {provider.value}:{model_name} - {traceback.format_exc()}")
             raise ModelError(f"创建适配器失败: {str(e)}")
     
     def generate(self, 

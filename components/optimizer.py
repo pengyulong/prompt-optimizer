@@ -62,48 +62,30 @@ class OptimizerComponent:
     
     def _render_config_section(self):
         """渲染配置区域"""
-        st.subheader("⚙️ 优化配置")
+        # st.subheader("⚙️ 优化配置")
         
-        col1, col2 = st.columns([1, 1])
+        # 获取默认模型配置
+        selected_model = self._get_default_model()
         
-        with col1:
-            # 模型选择
-            available_models = self._get_available_models()
-            if not available_models:
-                st.error("❌ 没有可用的模型，请检查配置")
-                return None, None, None
-            
-            model_options = [f"{info['provider']} / {info['display_name']}" 
-                           for info in available_models]
-            
-            selected_model_index = st.selectbox(
-                "选择模型",
-                range(len(model_options)),
-                format_func=lambda x: model_options[x],
-                key="selected_model_index",
-                help="选择用于优化的AI模型"
-            )
-            
-            selected_model = available_models[selected_model_index]
+        # 优化策略选择
+        optimization_options = OptimizationConfig.OPTIMIZATION_TYPES
+        opt_display = [f"{opt['icon']} {opt['name']}" for opt in optimization_options]
         
-        with col2:
-            # 优化类型选择
-            optimization_options = OptimizationConfig.OPTIMIZATION_TYPES
+        # 生成唯一key，包含组件名称、会话ID和当前时间戳
+        import uuid
+        strategy_key = f"optimizer_strategy_select_{st.session_state.get('session_id','default')}_{uuid.uuid4().hex}"
+        selected_opt_index = st.selectbox(
+            "优化策略",
+            range(len(opt_display)),
+            format_func=lambda x: opt_display[x],
+            key=strategy_key,
+            help="选择适合您需求的优化策略"
+        )
             
-            opt_display = [f"{opt['icon']} {opt['name']}" for opt in optimization_options]
+        selected_opt = optimization_options[selected_opt_index]
             
-            selected_opt_index = st.selectbox(
-                "优化策略",
-                range(len(opt_display)),
-                format_func=lambda x: opt_display[x],
-                key="selected_optimization_type",
-                help="选择适合您需求的优化策略"
-            )
-            
-            selected_opt = optimization_options[selected_opt_index]
-            
-            # 显示策略描述
-            st.info(f"💡 {selected_opt['description']}")
+        # 显示策略描述
+        st.info(f"💡 {selected_opt['description']}")
         
         # 高级选项
         if st.checkbox("🔧 高级选项", key="show_advanced_options"):
@@ -113,9 +95,9 @@ class OptimizerComponent:
     
     def _render_advanced_options(self):
         """渲染高级选项"""
-        st.markdown("**生成参数调整**")
+        # st.markdown("**生成参数调整**")
         
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         
         with col1:
             temperature = st.slider(
@@ -129,17 +111,6 @@ class OptimizerComponent:
             )
         
         with col2:
-            max_tokens = st.slider(
-                "最大输出长度",
-                min_value=100,
-                max_value=8192,
-                value=4096,
-                step=100,
-                key="max_tokens",
-                help="限制生成的最大token数量"
-            )
-        
-        with col3:
             top_p = st.slider(
                 "核采样 (Top-p)",
                 min_value=0.1,
@@ -172,17 +143,8 @@ class OptimizerComponent:
             st.error("❌ 所选模型不可用，请检查配置或选择其他模型")
             return
         
-        # 优化按钮
-        col1, col2, col3 = st.columns([1, 2, 1])
-        
-        with col2:
-            if st.button(
-                "🚀 开始优化",
-                type="primary",
-                use_container_width=True,
-                key="optimize_button"
-            ):
-                self._execute_optimization()
+        if st.button("🚀 开始优化", type="primary", use_container_width=True, key="optimize_button"):
+            self._execute_optimization()
     
     def _execute_optimization(self):
         """执行优化"""
@@ -297,53 +259,52 @@ class OptimizerComponent:
             self._render_details_tab(result)
     
     def _render_comparison_tab(self, result, original_prompt):
-        """渲染对比标签页"""
-        col1, col2 = st.columns([1, 1])
+        """统一布局的对比标签页"""
+        # 使用垂直布局代替水平布局
+        st.markdown("####  📝 原始提示词")
+        st.text_area(
+            "原始提示词",
+            value=original_prompt,
+            height=200,
+            key="original_display",
+            disabled=True,
+            label_visibility="collapsed"
+        )
+        
+        # 优化结果展示
+        st.markdown("#### 🔧 优化后提示词")
+        st.text_area(
+            "优化后的提示词",
+            value=result.optimized_prompt,
+            height=200,
+            key="optimized_display",
+            label_visibility="collapsed"
+        )
+        
+        # 统计信息
+        col1, col2 = st.columns(2)
+        original_length = len(original_prompt)
+        optimized_length = len(result.optimized_prompt)
+        length_diff = optimized_length - original_length
         
         with col1:
-            st.markdown("**🔧 优化后**")
-            st.text_area(
-                "优化后的提示词",
-                value=result.optimized_prompt,
-                height=300,
-                key="optimized_display",
-                label_visibility="collapsed"
-            )
-            
-            # 复制按钮
-            if st.button("📋 复制优化后", key="copy_optimized", use_container_width=True):
-                st.info("💡 请手动复制上方文本")
-            
-            # 字符统计
-            optimized_length = len(result.optimized_prompt)
-            st.caption(f"字符数: {optimized_length}")
+            st.metric("原始长度", f"{original_length} 字符")
         
         with col2:
-            st.markdown("**📝 原始**")
-            st.text_area(
-                "原始提示词",
-                value=original_prompt,
-                height=300,
-                key="original_display",
-                disabled=True,
-                label_visibility="collapsed"
-            )
-            
-            # 复制按钮
-            if st.button("📋 复制原始", key="copy_original", use_container_width=True):
-                st.info("💡 请手动复制上方文本")
-            
-            # 字符统计和对比
-            original_length = len(original_prompt)
-            length_diff = optimized_length - original_length
-            st.caption(f"字符数: {original_length}")
-            
-            if length_diff > 0:
-                st.caption(f"🔺 增加了 {length_diff} 个字符")
-            elif length_diff < 0:
-                st.caption(f"🔻 减少了 {abs(length_diff)} 个字符")
-            else:
-                st.caption("➡️ 字符数无变化")
+            st.metric("优化后长度", f"{optimized_length} 字符", 
+                    delta=f"{'+' if length_diff > 0 else ''}{length_diff} 字符")
+        
+        # 复制按钮组
+        copy_cols = st.columns(2)
+        with copy_cols[0]:
+            if st.button("📋 复制原始提示词", use_container_width=True):
+                st.session_state.copied_text = original_prompt
+                st.toast("已复制原始提示词", icon="📋")
+        
+        with copy_cols[1]:
+            if st.button("📋 复制优化后提示词", type="primary", use_container_width=True):
+                st.session_state.copied_text = result.optimized_prompt
+                st.toast("已复制优化后提示词", icon="📋")
     
     def _render_suggestions_tab(self, result):
         """渲染建议标签页"""
@@ -420,30 +381,13 @@ class OptimizerComponent:
         st.markdown("---")
         st.caption(f"创建时间: {result.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
     
-    def _get_available_models(self):
-        """获取可用模型列表"""
-        try:
-            if not st.session_state.model_client:
-                return []
-            
-            models = st.session_state.model_client.get_available_models()
-            
-            # 转换为显示格式
-            model_list = []
-            for model in models:
-                model_list.append({
-                    "name": model.name,
-                    "display_name": model.display_name,
-                    "provider": model.provider.value,
-                    "description": model.description,
-                    "category": model.category
-                })
-            
-            return model_list
-            
-        except Exception as e:
-            logger.error(f"获取可用模型失败: {str(e)}")
-            return []
+    def _get_default_model(self) -> Dict[str, str]:
+        """获取默认模型配置"""
+        return {
+            "provider": OptimizationConfig.DEFAULT_PROVIDER.value,
+            "name": OptimizationConfig.DEFAULT_MODEL,
+            "display_name": OptimizationConfig.DEFAULT_MODEL
+        }
     
     def _check_model_availability(self):
         """检查所选模型可用性"""

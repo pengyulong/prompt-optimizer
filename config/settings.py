@@ -10,23 +10,13 @@ from enum import Enum
 # 加载环境变量
 load_dotenv()
 
+from core.models import ModelProvider
+
 class Environment(Enum):
     """环境枚举"""
     DEVELOPMENT = "development"
     PRODUCTION = "production"
     TESTING = "testing"
-
-class ModelProvider(Enum):
-    """模型提供商枚举"""
-    OLLAMA = "ollama"
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    QWEN = "qwen"
-    CHATGLM = "chatglm"
-    DEEPSEEK = "deepseek"
-    VLLM = "vllm"
-    MOONSHOT = "moonshot"
-    ERNIE = "ernie"
 
 class AppConfig:
     """应用配置"""
@@ -52,20 +42,6 @@ class ModelConfig:
             "description": "本地部署的开源模型",
             "models": [
                 {
-                    "name": "llama3.2:latest",
-                    "display_name": "Llama 3.2 (最新)",
-                    "description": "Meta开源的强大对话模型",
-                    "category": "通用对话",
-                    "context_length": 128000,
-                    "parameters": {
-                        "temperature": 0.7,
-                        "top_p": 0.9,
-                        "top_k": 40,
-                        "repeat_penalty": 1.1,
-                        "max_tokens": 4096
-                    }
-                },
-                {
                     "name": "qwen2.5:latest",
                     "display_name": "通义千问 2.5 (最新)",
                     "description": "阿里巴巴的中文优化模型",
@@ -77,48 +53,6 @@ class ModelConfig:
                         "top_k": 50,
                         "repeat_penalty": 1.05,
                         "max_tokens": 8192
-                    }
-                },
-                {
-                    "name": "mistral:latest",
-                    "display_name": "Mistral (最新)",
-                    "description": "欧洲开源的高效模型",
-                    "category": "通用对话",
-                    "context_length": 32768,
-                    "parameters": {
-                        "temperature": 0.7,
-                        "top_p": 0.95,
-                        "top_k": 40,
-                        "repeat_penalty": 1.1,
-                        "max_tokens": 32768
-                    }
-                },
-                {
-                    "name": "codellama:latest",
-                    "display_name": "Code Llama (最新)",
-                    "description": "Meta专门用于代码的模型",
-                    "category": "代码专用",
-                    "context_length": 16384,
-                    "parameters": {
-                        "temperature": 0.1,
-                        "top_p": 0.9,
-                        "top_k": 50,
-                        "repeat_penalty": 1.1,
-                        "max_tokens": 16384
-                    }
-                },
-                {
-                    "name": "deepseek-coder:latest",
-                    "display_name": "DeepSeek Coder (最新)",
-                    "description": "深度求索的代码专用模型",
-                    "category": "代码专用",
-                    "context_length": 16384,
-                    "parameters": {
-                        "temperature": 0.1,
-                        "top_p": 0.95,
-                        "top_k": 50,
-                        "repeat_penalty": 1.05,
-                        "max_tokens": 16384
                     }
                 }
             ]
@@ -220,11 +154,11 @@ class ModelConfig:
                     }
                 },
                 {
-                    "name": "deepseek-coder",
-                    "display_name": "DeepSeek Coder",
-                    "description": "深度求索的代码专用模型",
-                    "category": "代码专用",
-                    "context_length": 16384,
+                    "name": "deepseek-reasoner",
+                    "display_name": "DeepSeek推理模型",
+                    "description": "深度求索的推理模型",
+                    "category": "推理类模型",
+                    "context_length": 32768,
                     "parameters": {
                         "temperature": 0.1,
                         "top_p": 0.95,
@@ -324,10 +258,9 @@ class APIConfig:
             "api_key": os.getenv("MOONSHOT_API_KEY"),
             "timeout": int(os.getenv("MOONSHOT_TIMEOUT", "60"))
         },
-        ModelProvider.ERNIE: {
-            "base_url": os.getenv("ERNIE_BASE_URL", "https://aip.baidubce.com"),
-            "api_key": os.getenv("ERNIE_API_KEY"),
-            "secret_key": os.getenv("ERNIE_SECRET_KEY"),
+        ModelProvider.QIANFAN: {
+            "base_url": os.getenv("QIANFAN_BASE_URL", "https://qianfan.baidubce.com/v2"),
+            "api_key": os.getenv("QIANFAN_API_KEY", ""),
             "timeout": int(os.getenv("ERNIE_TIMEOUT", "60"))
         },
         ModelProvider.VLLM: {
@@ -381,8 +314,8 @@ class OptimizationConfig:
     
     MAX_PROMPT_LENGTH = 10000
     MAX_OUTPUT_LENGTH = 20000
-    DEFAULT_PROVIDER = ModelProvider.OLLAMA
-    DEFAULT_MODEL = "llama3.2:latest"
+    DEFAULT_PROVIDER = ModelProvider.DEEPSEEK
+    DEFAULT_MODEL = "deepseek-chat"
 
 class TestConfig:
     """测试配置"""
@@ -485,8 +418,11 @@ class ConfigValidator:
     """配置验证器"""
     
     @staticmethod
-    def get_available_providers() -> List[ModelProvider]:
-        """获取可用的模型提供商"""
+    def get_available_providers(require_api_key: bool = True) -> List[ModelProvider]:
+        """获取可用的模型提供商
+        Args:
+            require_api_key: 是否要求必须配置API Key（Ollama除外）
+        """
         available = []
         
         for provider in ModelProvider:
@@ -497,8 +433,8 @@ class ConfigValidator:
                 if config.get("base_url"):
                     available.append(provider)
             else:
-                # 其他提供商需要 API Key
-                if config.get("api_key"):
+                # 根据参数决定是否检查API Key
+                if not require_api_key or config.get("api_key"):
                     available.append(provider)
         
         return available
@@ -554,6 +490,10 @@ class ConfigValidator:
 _validation_result = ConfigValidator.validate_config()
 
 # 配置验证结果已静默处理
+
+# 配置默认模型和模型提供商
+DEFAULT_PROVIDER = ModelProvider.DEEPSEEK
+DEFAULT_MODEL = "deepseek-chat"
 
 # 导出主要配置类
 __all__ = [
